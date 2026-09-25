@@ -354,8 +354,56 @@
 
   const canvasBlob = (c, type, q) => new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('encode'))), type, q));
 
+  // ---- HEIC (iPhone photos) ----
+  // Only Safari decodes HEIC natively, so HEIC photos are converted to a high-quality JPEG
+  // on import. Projects then open, autosave and export the same in every browser.
+
+  const HEIC_BRANDS = ['heic', 'heix', 'heim', 'heis', 'hevc', 'hevx', 'hevm', 'hevs', 'mif1', 'msf1'];
+
+  async function isHeic(blob, name) {
+    if (/\.hei[cf]$/i.test(name || '') || /^image\/hei[cf]/i.test(blob.type)) return true;
+    const head = String.fromCharCode(...new Uint8Array(await blob.slice(4, 12).arrayBuffer()));
+    return head.slice(0, 4) === 'ftyp' && HEIC_BRANDS.includes(head.slice(4));
+  }
+
+  let heicLib = null;
+  function loadHeicLib() {
+    if (!heicLib) {
+      heicLib = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'vendor/heic-to.js';
+        s.onload = () => (window.HeicTo ? resolve(window.HeicTo) : reject(new Error('heic-lib')));
+        s.onerror = () => { heicLib = null; reject(new Error('heic-lib')); };
+        document.head.appendChild(s);
+      });
+    }
+    return heicLib;
+  }
+
+  async function heicToJpeg(blob) {
+    try {
+      // Safari: use the built-in decoder.
+      const img = await loadImage(blob);
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth;
+      c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      releaseImage(img);
+      try {
+        return await canvasBlob(c, 'image/jpeg', 0.95);
+      } finally {
+        c.width = c.height = 0;
+      }
+    } catch (e) {
+      // Other browsers: bundled libheif decoder (applies the photo's rotation itself).
+      const HeicTo = await loadHeicLib();
+      return HeicTo({ blob, type: 'image/jpeg', quality: 0.95 });
+    }
+  }
+
   // Decode a photo once, keep a small preview and thumbnail in memory.
   async function processPhoto(blob, name, id, key) {
+    if (await isHeic(blob, name)) blob = await heicToJpeg(blob);
     const img = await loadImage(blob);
     const w = img.naturalWidth, h = img.naturalHeight;
     if (!w || !h) throw new Error('decode');
@@ -454,7 +502,7 @@
     if (failed.length) {
       const heic = failed.some((n) => /\.hei[cf]$/i.test(n));
       msg += ` Couldn't read ${failed.length}: ${failed.slice(0, 3).join(', ')}${failed.length > 3 ? '…' : ''}.`;
-      if (heic) msg += ' HEIC photos only work in Safari — open this page in Safari, or export them as JPEG from Photos.';
+      if (heic) msg += ' If these are HEIC photos, try exporting them as JPEG from the Photos app.';
     }
     toast(msg, failed.length > 0);
     if (failed.length) setTimeout(() => hideToast(), 9000);

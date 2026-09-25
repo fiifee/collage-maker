@@ -6,7 +6,7 @@ A browser app for making a large, print-quality collage from lots of photos. It 
 
 1. Download or clone this folder.
 2. Double-click **`index.html`**. It opens in your default browser.
-   - **Safari** can read iPhone **HEIC** photos directly.
+   - iPhone **HEIC** photos work in every browser. They are converted to high-quality JPEG when you add them.
    - **Chrome** also saves your work automatically as you go. In Safari, use **Save…** to keep your work (see below).
 
 ## Make a collage
@@ -62,4 +62,5 @@ js/geometry.js    layout generators (squares, diamonds, hexagons, mixed, scatter
 js/render.js      drawing, shared by the editor and the full-resolution export
 js/storage.js     autosave (IndexedDB), .collage project files, DPI metadata
 js/app.js         state, editing, undo, import/export
+vendor/heic-to.js HEIC decoder (libheif, LGPL-3.0), loaded only when a HEIC photo is added
 ```
