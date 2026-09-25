@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photo Collage</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="2"/><rect x="13" y="2" width="9" height="5" rx="2"/><rect x="13" y="9" width="9" height="13" rx="2"/><rect x="2" y="13" width="9" height="9" rx="2"/></svg>
+      Photo Collage
+    </div>
+    <div class="tb-group">
+      <button id="btnAdd" class="btn primary" title="Add photos (⌘O)">＋ Add photos</button>
+      <button id="btnShuffle" class="btn" title="Shuffle the order of the photos">Shuffle</button>
+    </div>
+    <div class="tb-group">
+      <button id="btnUndo" class="btn icon" title="Undo (⌘Z)" aria-label="Undo">↶</button>
+      <button id="btnRedo" class="btn icon" title="Redo (⇧⌘Z)" aria-label="Redo">↷</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="tb-group">
+      <button id="btnNew" class="btn" title="Start a new, empty collage">New</button>
+      <button id="btnOpen" class="btn" title="Open a saved .collage project">Open…</button>
+      <button id="btnSave" class="btn" title="Save the project (photos included) to a .collage file">Save…</button>
+      <button id="btnExport" class="btn primary" title="Export the finished collage as an image">Export image</button>
+    </div>
+    <input type="file" id="fileInput" multiple accept="image/*,.heic,.heif" hidden>
+    <input type="file" id="projectInput" accept=".collage" hidden>
+  </header>
+
+  <main class="main">
+    <aside class="panel left" id="leftPanel">
+      <section class="sec">
+        <h3>Layout</h3>
+        <div class="layout-grid" id="layoutButtons">
+          <button data-layout="squares" title="Grid of rectangles">
+            <svg viewBox="0 0 40 40"><rect x="4" y="4" width="15" height="15" rx="1.5"/><rect x="21" y="4" width="15" height="15" rx="1.5"/><rect x="4" y="21" width="15" height="15" rx="1.5"/><rect x="21" y="21" width="15" height="15" rx="1.5"/></svg>
+            <span>Squares</span>
+          </button>
+          <button data-layout="diamonds" title="Grid turned 45°">
+            <svg viewBox="0 0 40 40"><path d="M20 3 L29 12 L20 21 L11 12Z"/><path d="M20 19 L29 28 L20 37 L11 28Z"/><path d="M4 11 L13 20 L4 29Z"/><path d="M36 11 L27 20 L36 29Z"/></svg>
+            <span>Diamonds</span>
+          </button>
+          <button data-layout="hexagons" title="Honeycomb">
+            <svg viewBox="0 0 40 40"><path d="M13 4 L20 8 L20 16 L13 20 L6 16 L6 8Z"/><path d="M28 4 L35 8 L35 16 L28 20 L21 16 L21 8Z"/><path d="M20.5 18 L27.5 22 L27.5 30 L20.5 34 L13.5 30 L13.5 22Z"/></svg>
+            <span>Hexagons</span>
+          </button>
+          <button data-layout="mixed" title="Grid with some bigger tiles">
+            <svg viewBox="0 0 40 40"><rect x="4" y="4" width="21" height="21" rx="1.5"/><rect x="27" y="4" width="9" height="9" rx="1.5"/><rect x="27" y="15" width="9" height="10" rx="1.5"/><rect x="4" y="27" width="9" height="9" rx="1.5"/><rect x="15" y="27" width="21" height="9" rx="1.5"/></svg>
+            <span>Mixed</span>
+          </button>
+          <button data-layout="scatter" title="Photos scattered on a table">
+            <svg viewBox="0 0 40 40"><rect x="5" y="6" width="16" height="13" rx="1" transform="rotate(-10 13 12)"/><rect x="19" y="9" width="15" height="12" rx="1" transform="rotate(8 26 15)"/><rect x="9" y="21" width="17" height="13" rx="1" transform="rotate(5 17 27)"/></svg>
+            <span>Scattered</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="sec" data-for="squares diamonds hexagons">
+        <h3>Shape</h3>
+        <div class="seg" id="shapeSeg">
+          <button data-shape="rect">Rectangle</button>
+          <button data-shape="heart">♥ Heart</button>
+          <button data-shape="circle">● Circle</button>
+        </div>
+      </section>
+
+      <section class="sec" data-for="squares diamonds hexagons mixed">
+        <h3>Tiles</h3>
+        <div class="field">
+          <label for="cols">Columns <output id="colsOut"></output></label>
+          <input type="range" id="cols" min="1" max="40" step="1">
+        </div>
+        <div class="field" id="rowsField">
+          <label for="rows">Rows <output id="rowsOut"></output></label>
+          <input type="range" id="rows" min="1" max="60" step="1">
+        </div>
+        <div class="field" data-for="mixed">
+          <label for="mixed">Big tiles <output id="mixedOut"></output></label>
+          <input type="range" id="mixed" min="0" max="0.8" step="0.05">
+          <button class="btn small" id="btnReroll">New arrangement</button>
+        </div>
+        <label class="check" data-for="diamonds hexagons" id="edgesField"><input type="checkbox" id="fillEdges"> Fill edge pieces</label>
+        <label class="check"><input type="checkbox" id="repeat"> Repeat photos to fill all tiles</label>
+        <div class="fit-row">
+          <span id="tileInfo" class="muted"></span>
+          <button class="btn small" id="btnFit" title="Choose the number of tiles to fit all photos">Fit to photos</button>
+        </div>
+      </section>
+
+      <section class="sec" data-for="scatter">
+        <h3>Scatter</h3>
+        <div class="field">
+          <label for="scSize">Photo size <output id="scSizeOut"></output></label>
+          <input type="range" id="scSize" min="0.4" max="2" step="0.05">
+        </div>
+        <div class="field">
+          <label for="scTilt">Tilt <output id="scTiltOut"></output></label>
+          <input type="range" id="scTilt" min="0" max="35" step="1">
+        </div>
+        <div class="field">
+          <label>Frame</label>
+          <div class="seg" id="frameSeg">
+            <button data-frame="none">None</button>
+            <button data-frame="border">Border</button>
+            <button data-frame="polaroid">Polaroid</button>
+          </div>
+        </div>
+        <label class="check"><input type="checkbox" id="shadow"> Drop shadow</label>
+        <button class="btn small" id="btnRescatter">Scatter again</button>
+      </section>
+
+      <section class="sec">
+        <h3>Style</h3>
+        <div class="field" data-for="squares diamonds hexagons mixed">
+          <label for="gap">Gap between photos <output id="gapOut"></output></label>
+          <input type="range" id="gap" min="0" max="20" step="0.5">
+        </div>
+        <div class="field">
+          <label for="radius">Rounded corners <output id="radiusOut"></output></label>
+          <input type="range" id="radius" min="0" max="25" step="0.5">
+        </div>
+        <div class="field">
+          <label>Background</label>
+          <div class="swatches" id="bgSwatches">
+            <button data-color="#ffffff" style="--c:#ffffff" title="White"></button>
+            <button data-color="#f4efe6" style="--c:#f4efe6" title="Cream"></button>
+            <button data-color="#1d1d1f" style="--c:#1d1d1f" title="Black"></button>
+            <button data-color="#f7d6dc" style="--c:#f7d6dc" title="Pink"></button>
+            <button data-color="#dce8f2" style="--c:#dce8f2" title="Blue"></button>
+            <label class="custom-color" title="Custom colour"><input type="color" id="bgColor"></label>
+          </div>
+        </div>
+      </section>
+
+      <section class="sec">
+        <h3>Paper</h3>
+        <div class="field">
+          <select id="paperSel"></select>
+        </div>
+        <div class="field two" id="customSize">
+          <label>Width (cm)<input type="number" id="customW" min="5" max="300" step="0.1"></label>
+          <label>Height (cm)<input type="number" id="customH" min="5" max="300" step="0.1"></label>
+        </div>
+        <div class="seg" id="orientSeg">
+          <button data-orient="portrait">Portrait</button>
+          <button data-orient="landscape">Landscape</button>
+        </div>
+        <div class="field">
+          <label for="margin">Outer margin <output id="marginOut"></output></label>
+          <input type="range" id="margin" min="0" max="50" step="1">
+        </div>
+        <div class="field">
+          <label for="dpi">Print resolution</label>
+          <select id="dpi">
+            <option value="300">300 DPI — best print quality</option>
+            <option value="200">200 DPI — large posters</option>
+            <option value="150">150 DPI — very large / viewed from afar</option>
+          </select>
+        </div>
+        <p class="muted small" id="paperInfo"></p>
+      </section>
+    </aside>
+
+    <section class="stage-wrap" id="stageWrap">
+      <canvas id="stage"></canvas>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-card">
+          <div class="empty-icon">🖼️</div>
+          <h2>Start your collage</h2>
+          <p>Drag photos from Finder into this window, or</p>
+          <button class="btn primary" id="btnAddEmpty">Choose photos…</button>
+          <p class="muted small">Your photos stay on this Mac. Nothing is uploaded.</p>
+        </div>
+      </div>
+      <div class="zoom-ctl">
+        <button class="btn icon" id="zoomOut" title="Zoom out (−)">−</button>
+        <button class="btn" id="zoomFit" title="Fit to window (0)">Fit</button>
+        <button class="btn icon" id="zoomIn" title="Zoom in (+)">＋</button>
+      </div>
+      <div class="hint" id="hint"></div>
+    </section>
+
+    <aside class="panel right" id="inspector"></aside>
+  </main>
+
+  <footer class="tray">
+    <div class="tray-head">
+      <strong>Photos</strong> <span id="trayCount" class="muted"></span>
+      <span class="muted small tray-tip">Drag a photo onto a tile to place it there</span>
+    </div>
+    <div class="tray-list" id="trayList"></div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="exportDialog">
+    <form method="dialog" class="dialog">
+      <h2>Export image</h2>
+      <p id="exportInfo"></p>
+      <div class="field">
+        <label>Format</label>
+        <div class="seg" id="formatSeg">
+          <button type="button" data-format="jpeg">JPEG</button>
+          <button type="button" data-format="png">PNG</button>
+        </div>
+        <p class="muted small" id="formatHint"></p>
+      </div>
+      <div class="field" id="qualityField">
+        <label for="quality">JPEG quality <output id="qualityOut"></output></label>
+        <input type="range" id="quality" min="0.7" max="1" step="0.01">
+      </div>
+      <div id="exportWarn" class="warn"></div>
+      <div class="progress" id="exportProgress" hidden><div></div></div>
+      <div class="dialog-actions">
+        <button type="button" class="btn" id="exportCancel">Cancel</button>
+        <button type="button" class="btn primary" id="exportGo">Export</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/geometry.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
